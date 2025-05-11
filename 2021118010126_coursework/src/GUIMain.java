@@ -1,24 +1,21 @@
-/**
- * Main class for the GUI version of the Weaver game
- */
 public class GUIMain {
-    /**
-     * Main method
-     * @param args command-line arguments (not used)
-     */
     public static void main(String[] args) {
-        // Create the model, view, and controller
+        // Initialize the Model-View-Controller components
         Model model = new Model();
         View view = new View(model);
         Controller controller = new Controller(model, view);
 
-        // Set up observers and relationships
+        // Connect components using Observer pattern
         model.addObserver(view);
+        model.addObserver(controller);
         view.setController(controller);
 
-        // Set initial flag values
+        // Configure initial game preferences
         model.setShowErrorMessages(true);
         model.setShowPath(false);
         model.setRandomWords(false);
+
+        // Initialize UI element states
+        controller.updateButtonStates();
     }
 }

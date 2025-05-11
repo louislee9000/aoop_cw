@@ -1,33 +1,26 @@
 import java.util.List;
 import java.util.Scanner;
 
-/**
- * Command-line interface for the Weaver game
- */
 public class CLI {
     private IModel model;
     private Scanner scanner;
 
-    /**
-     * Constructor
-     */
+    // Constructor - sets up the game environment with default settings
     public CLI() {
         model = new Model();
         scanner = new Scanner(System.in);
 
-        // Set flags
+        // Set default game configuration flags
         model.setShowErrorMessages(true);
         model.setShowPath(false);
         model.setRandomWords(false);
 
-        // Main game loop
+        // Launch the game
         playGame();
     }
 
-    /**
-     * Main game loop
-     */
     private void playGame() {
+        // Display welcome message and instructions
         System.out.println("Welcome to Weaver!");
         System.out.println("Change one letter at a time to transform the start word into the target word.");
         System.out.println("All intermediate steps must be valid words.");
@@ -36,11 +29,12 @@ public class CLI {
 
         printGameState();
 
+        // Main game loop continues until player wins
         while (!model.hasWon()) {
             System.out.print("Enter a word: ");
             String input = scanner.nextLine().trim().toLowerCase();
 
-            // Command handling
+            // Process special commands
             if (input.equals("exit")) {
                 System.out.println("Thanks for playing!");
                 break;
@@ -50,17 +44,18 @@ public class CLI {
                 printGameState();
                 continue;
             } else if (input.equals("new")) {
+                model.setRandomWords(true);
                 model.newGame();
                 System.out.println("New game started.");
                 printGameState();
                 continue;
             } else if (input.startsWith("set ")) {
-                // Flag setting command
+                // Handle game configuration commands
                 handleFlagCommand(input.substring(4));
                 continue;
             }
 
-            // Word validation
+            // Validate word length (must be 4 letters)
             if (input.length() != 4) {
                 if (model.isShowErrorMessages()) {
                     System.out.println("Error: Word must be 4 letters long");
@@ -68,6 +63,7 @@ public class CLI {
                 continue;
             }
 
+            // Check if the word is valid (exists in dictionary and differs by one letter)
             if (!model.isValidWord(input)) {
                 if (model.isShowErrorMessages()) {
                     System.out.println("Error: Invalid word. It must be in the dictionary and differ by exactly one letter from the previous word.");
@@ -75,15 +71,15 @@ public class CLI {
                 continue;
             }
 
-            // Submit valid word
+            // Add valid word to the game
             model.submitWord(input);
             printGameState();
 
-            // Check if the game is won
+            // Handle win condition
             if (model.hasWon()) {
                 showWinMessage();
 
-                // Ask to play again
+                // Offer to play again
                 System.out.print("Would you like to play again? (yes/no): ");
                 input = scanner.nextLine().trim().toLowerCase();
                 if (input.equals("yes") || input.equals("y")) {
@@ -99,11 +95,8 @@ public class CLI {
         scanner.close();
     }
 
-    /**
-     * Handle flag setting command
-     * @param command the command string
-     */
     private void handleFlagCommand(String command) {
+        // Parse the command into flag name and value
         String[] parts = command.split(" ");
         if (parts.length != 2) {
             System.out.println("Invalid command. Use 'set <flag> <value>'");
@@ -114,12 +107,15 @@ public class CLI {
         String value = parts[1].toLowerCase();
         boolean boolValue = value.equals("true") || value.equals("on") || value.equals("1");
 
+        // Process different flag types
         switch (flag) {
             case "errors":
+                // Toggle display of error messages
                 model.setShowErrorMessages(boolValue);
                 System.out.println("Show error messages: " + boolValue);
                 break;
             case "path":
+                // Toggle display of solution path
                 model.setShowPath(boolValue);
                 System.out.println("Show path: " + boolValue);
                 if (boolValue) {
@@ -127,6 +123,7 @@ public class CLI {
                 }
                 break;
             case "random":
+                // Toggle random word selection
                 model.setRandomWords(boolValue);
                 System.out.println("Random words: " + boolValue);
                 if (boolValue) {
@@ -135,22 +132,21 @@ public class CLI {
                 }
                 break;
             default:
+                // Handle unknown flag
                 System.out.println("Unknown flag: " + flag);
                 System.out.println("Available flags: errors, path, random");
                 break;
         }
     }
 
-    /**
-     * Print the current game state
-     */
     private void printGameState() {
+        // Display current game information
         System.out.println("\n---------------------------");
         System.out.println("Start word: " + model.getStartWord().toUpperCase());
         System.out.println("Target word: " + model.getTargetWord().toUpperCase());
         System.out.println("---------------------------");
 
-        // Print attempts
+        // Show player's progress so far
         List<String> attempts = model.getAttempts();
         if (attempts.isEmpty()) {
             System.out.println("No attempts yet");
@@ -160,7 +156,7 @@ public class CLI {
                 String attempt = attempts.get(i);
                 System.out.print((i + 1) + ". " + attempt.toUpperCase() + " ");
 
-                // Print feedback
+                // Indicate correctness of each letter with color codes (G=correct, Y=wrong position, X=not in target)
                 int[] feedback = model.getFeedback(attempt);
                 System.out.print("[");
                 for (int j = 0; j < 4; j++) {
@@ -179,16 +175,14 @@ public class CLI {
 
         System.out.println("---------------------------");
 
-        // Show path if enabled
+        // Show optimal solution if enabled
         if (model.isShowPath()) {
             showPath();
         }
     }
 
-    /**
-     * Show a win message
-     */
     private void showWinMessage() {
+        // Display victory message with statistics
         System.out.println("\n*******************************");
         System.out.println("* Congratulations! You won!   *");
         System.out.println("* You transformed " + model.getStartWord().toUpperCase() + " into " +
@@ -197,10 +191,8 @@ public class CLI {
         System.out.println("*******************************\n");
     }
 
-    /**
-     * Show the path from start to target
-     */
     private void showPath() {
+        // Find and display the optimal path between start and target words
         List<String> path = model.findPath();
 
         if (path.isEmpty()) {
@@ -218,10 +210,7 @@ public class CLI {
         }
     }
 
-    /**
-     * Main method
-     * @param args command-line arguments (not used)
-     */
+    // Program entry point
     public static void main(String[] args) {
         new CLI();
     }

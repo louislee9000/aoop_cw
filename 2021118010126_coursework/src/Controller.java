@@ -1,47 +1,37 @@
-/**
- * Controller component for the Weaver game GUI
- */
-public class Controller {
+import java.util.Observable;
+import java.util.Observer;
+
+public class Controller implements Observer {
     private IModel model;
     private View view;
     private StringBuilder currentWord;
 
-    /**
-     * Constructor
-     * @param model the model
-     * @param view the view
-     */
+    // Constructor - connects controller to model and view components
     public Controller(IModel model, View view) {
         this.model = model;
         this.view = view;
         this.currentWord = new StringBuilder();
     }
 
-    /**
-     * Handle a key press
-     * @param key the key pressed
-     */
     public void handleKeyPress(char key) {
         if (key == '\b') {
-            // Backspace - delete the last character
+            // Remove last character when backspace is pressed
             if (currentWord.length() > 0) {
                 currentWord.deleteCharAt(currentWord.length() - 1);
             }
         } else if (Character.isLetter(key)) {
-            // Letter key - add to current word if not full
+            // Add letters to input (max 4 characters)
             if (currentWord.length() < 4) {
                 currentWord.append(Character.toLowerCase(key));
             }
         }
 
-        // Update the current input in the view
+        // Reflect changes in the view
         view.updateCurrentInput(currentWord.toString());
     }
 
-    /**
-     * Handle a submit action
-     */
     public void handleSubmit() {
+        // Validate word length
         if (currentWord.length() != 4) {
             view.showErrorMessage("Word must be 4 letters long");
             return;
@@ -49,40 +39,40 @@ public class Controller {
 
         String word = currentWord.toString().toLowerCase();
 
+        // Check word validity against game rules
         if (!model.isValidWord(word)) {
             view.showErrorMessage("Invalid word: " + word +
                     "\nWord must be in the dictionary and differ by exactly one letter from the previous word.");
             return;
         }
 
+        // Submit valid word and clear input field
         model.submitWord(word);
         currentWord.setLength(0);
         view.updateCurrentInput(currentWord.toString());
+
+        updateButtonStates();
     }
 
-    /**
-     * Handle a reset action
-     */
+    // Reset current game to starting state
     public void handleReset() {
         model.resetGame();
         currentWord.setLength(0);
         view.updateCurrentInput(currentWord.toString());
+
+        updateButtonStates();
     }
 
-    /**
-     * Handle a new game action
-     */
+    // Start a fresh game with new words
     public void handleNewGame() {
         model.newGame();
         currentWord.setLength(0);
         view.updateCurrentInput(currentWord.toString());
+
+        updateButtonStates();
     }
 
-    /**
-     * Handle a flag change
-     * @param flagName the name of the flag
-     * @param value the new value
-     */
+    // Process changes to game configuration options
     public void handleFlagChange(String flagName, boolean value) {
         switch (flagName) {
             case "showErrorMessages":
@@ -95,5 +85,19 @@ public class Controller {
                 model.setRandomWords(value);
                 break;
         }
+
+        updateButtonStates();
+    }
+
+    // Refresh UI elements based on current game state
+    public void updateButtonStates() {
+        view.setResetButtonEnabled(model.getCurrentAttempt() > 0);
+        view.setNewGameButtonEnabled(true);
+    }
+
+    // Observer pattern implementation - responds to model changes
+    @Override
+    public void update(Observable o, Object arg) {
+        updateButtonStates();
     }
 }

@@ -4,9 +4,6 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
-/**
- * View component for the Weaver game GUI - Modified for unlimited attempts and keyboard support
- */
 public class View implements Observer {
     private IModel model;
     private Controller controller;
@@ -28,10 +25,7 @@ public class View implements Observer {
     private JButton[] keyButtons;
     private StringBuilder currentInput;
 
-    /**
-     * Constructor
-     * @param model the model
-     */
+    // Initializes the view with model reference
     public View(IModel model) {
         this.model = model;
         this.currentInput = new StringBuilder();
@@ -39,17 +33,12 @@ public class View implements Observer {
         updateBoard();
     }
 
-    /**
-     * Set the controller
-     * @param controller the controller
-     */
+    // Sets controller for handling user interactions
     public void setController(Controller controller) {
         this.controller = controller;
     }
 
-    /**
-     * Initialize the components
-     */
+    // Sets up UI components and layouts
     private void initComponents() {
         // Create main frame
         frame = new JFrame("Weaver");
@@ -168,7 +157,6 @@ public class View implements Observer {
                 controller.handleReset();
             }
         });
-        resetButton.setEnabled(false);
 
         newGameButton = new JButton("New Game");
         newGameButton.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -258,10 +246,7 @@ public class View implements Observer {
         });
     }
 
-    /**
-     * Create a word panel with 4 cells
-     * @return the created panel
-     */
+    // Creates a word panel with 4 cells for displaying letters
     private JPanel createWordPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 4, 5, 5));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
@@ -280,9 +265,7 @@ public class View implements Observer {
         return panel;
     }
 
-    /**
-     * Update the board display
-     */
+    // Updates the board display with current game state
     private void updateBoard() {
         // Update start word
         String startWord = model.getStartWord().toUpperCase();
@@ -338,9 +321,6 @@ public class View implements Observer {
         // Update status label
         statusLabel.setText("<html>Start: " + startWord + "<br>Target: " + targetWord + "</html>");
 
-        // Update reset button
-        resetButton.setEnabled(model.getCurrentAttempt() > 0);
-
         // Revalidate and repaint the board panel
         attemptsPanel.revalidate();
         attemptsPanel.repaint();
@@ -364,10 +344,17 @@ public class View implements Observer {
         }
     }
 
-    /**
-     * Update current input display
-     * @param input the current input
-     */
+    // Enables or disables the reset button based on game state
+    public void setResetButtonEnabled(boolean enabled) {
+        resetButton.setEnabled(enabled);
+    }
+
+    // Enables or disables the new game button based on game state
+    public void setNewGameButtonEnabled(boolean enabled) {
+        newGameButton.setEnabled(enabled);
+    }
+
+    // Updates the display of the current word being typed
     public void updateCurrentInput(String input) {
         Component[] inputComponents = currentInputPanel.getComponents();
 
@@ -384,9 +371,7 @@ public class View implements Observer {
         }
     }
 
-    /**
-     * Show a win message
-     */
+    // Displays victory message when player successfully reaches target word
     public void showWinMessage() {
         JOptionPane.showMessageDialog(frame,
                 "Congratulations! You've successfully transformed " +
@@ -395,9 +380,7 @@ public class View implements Observer {
                 "You Win!", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Show the path from start to target
-     */
+    // Displays the optimal solution path from start to target word
     public void showPath() {
         List<String> path = model.findPath();
 
@@ -421,19 +404,14 @@ public class View implements Observer {
         }
     }
 
-    /**
-     * Show an error message
-     * @param message the message to show
-     */
+    // Displays error messages if error messages are enabled
     public void showErrorMessage(String message) {
         if (model.isShowErrorMessages()) {
             JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Update the view when the model changes
-     */
+    // Observer pattern implementation to update UI when model changes
     @Override
     public void update(Observable o, Object arg) {
         updateBoard();

@@ -3,17 +3,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * Model for the Weaver game.
- *
- * Class invariants:
- * - dictionary is not null and not empty
- * - startWord is not null and is 4 letters long
- * - targetWord is not null and is 4 letters long
- * - startWord and targetWord are different
- * - attempts is not null
- * - currentAttempt is equal to the size of attempts
- */
 public class Model extends Observable implements IModel {
     private String startWord;
     private String targetWord;
@@ -24,28 +13,24 @@ public class Model extends Observable implements IModel {
     private boolean showPath;
     private boolean randomWords;
 
-    // Default words if not using random words
+    // Default words used when random selection is disabled
     private static final String DEFAULT_START_WORD = "sale";
     private static final String DEFAULT_TARGET_WORD = "opal";
 
-    /**
-     * Constructor
-     */
+    // Initializes dictionary and game state
     public Model() {
         dictionary = new ArrayList<>();
         attempts = new ArrayList<>();
         loadDictionary();
-        initializeGame(); // Changed from resetGame() to initializeGame()
+        initializeGame(); // Initialize game state with default or random words
     }
 
-    /**
-     * Load the dictionary from file
-     */
+    // Loads 4-letter words from dictionary
     private void loadDictionary() {
         try (BufferedReader reader = new BufferedReader(new FileReader("dictionary.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Only add 4-letter words
+                // Only add 4-letter words to the dictionary
                 if (line.length() == 4) {
                     dictionary.add(line.toLowerCase());
                 }
@@ -54,14 +39,11 @@ public class Model extends Observable implements IModel {
             System.err.println("Error loading dictionary: " + e.getMessage());
         }
 
-        // Assert that the dictionary is not empty
+        // Ensure dictionary is not empty after loading
         assert !dictionary.isEmpty() : "Dictionary must not be empty";
     }
 
-    /**
-     * Get a random 4-letter word from the dictionary
-     * @return a random word
-     */
+    // Selects a random 4-letter word
     private String getRandomWord() {
         List<String> fourLetterWords = new ArrayList<>();
         for (String word : dictionary) {
@@ -71,19 +53,14 @@ public class Model extends Observable implements IModel {
         }
 
         if (fourLetterWords.isEmpty()) {
-            return DEFAULT_START_WORD; // Fallback
+            return DEFAULT_START_WORD; // Fallback to default word if no 4-letter words found
         }
 
         Random random = new Random();
         return fourLetterWords.get(random.nextInt(fourLetterWords.size()));
     }
 
-    /**
-     * Check if two words differ by exactly one letter
-     * @param word1 the first word
-     * @param word2 the second word
-     * @return true if the words differ by one letter, false otherwise
-     */
+    // Checks if words differ by exactly one letter
     private boolean isDifferByOneLetter(String word1, String word2) {
         // Precondition: words are not null and have the same length
         assert word1 != null && word2 != null : "Words cannot be null";
@@ -122,13 +99,7 @@ public class Model extends Observable implements IModel {
         return new ArrayList<>(attempts);
     }
 
-    /**
-     * @requires word != null
-     * @requires word.length() == 4
-     * @ensures if result == true then attempts.size() == \old(attempts.size()) + 1
-     * @ensures if result == true then currentAttempt == \old(currentAttempt) + 1
-     * @ensures if result == true then attempts.get(attempts.size()-1).equals(word)
-     */
+    // Processes word submission if valid
     @Override
     public boolean submitWord(String word) {
         // Precondition: word is not null
@@ -138,45 +109,34 @@ public class Model extends Observable implements IModel {
 
         word = word.toLowerCase();
 
-        // Class invariant: dictionary is loaded
-        assert !dictionary.isEmpty() : "Dictionary must be loaded";
-        // Class invariant: start and target words are set
-        assert startWord != null && targetWord != null : "Start and target words must be set";
-
-        // Check if the word is valid
+        // Validate the submitted word
         if (!isValidWord(word)) {
             return false;
         }
 
-        // Save old state for postcondition checking
+        // Store current state for verification
         int oldSize = attempts.size();
         int oldAttempt = currentAttempt;
 
-        // Add the word to the attempts
+        // Add word to attempts list and increment counter
         attempts.add(word);
         currentAttempt++;
 
-        // Notify observers
+        // Notify observers of model change
         setChanged();
         notifyObservers();
 
-        // Postcondition: currentAttempt increased by 1
+        // Verify attempt counter increased
         assert currentAttempt == oldAttempt + 1 : "Current attempt should increase by 1";
-        // Postcondition: attempts list size increased by 1
+        // Verify attempts list grew by one
         assert attempts.size() == oldSize + 1 : "Attempts size should increase by 1";
-        // Postcondition: last attempt is the submitted word
+        // Verify submitted word was added to list
         assert attempts.get(attempts.size() - 1).equals(word) : "Last attempt should be the submitted word";
 
         return true;
     }
 
-    /**
-     * @requires word != null
-     * @requires word.length() == 4
-     * @ensures if result == true then word is in dictionary
-     * @ensures if result == true && !attempts.isEmpty() then isDifferByOneLetter(attempts.get(attempts.size()-1), word)
-     * @ensures if result == true && attempts.isEmpty() then isDifferByOneLetter(startWord, word)
-     */
+    // Validates word against dictionary and previous word
     @Override
     public boolean isValidWord(String word) {
         // Precondition: word is not null
@@ -189,17 +149,17 @@ public class Model extends Observable implements IModel {
 
         word = word.toLowerCase();
 
-        // Check if the word is in the dictionary
+        // Check if word exists in dictionary
         if (!dictionary.contains(word)) {
             return false;
         }
 
-        // Check if the word differs by one letter from the last attempt or start word
+        // Verify word differs by exactly one letter from previous word
         if (!attempts.isEmpty()) {
             String lastAttempt = attempts.get(attempts.size() - 1);
             return isDifferByOneLetter(lastAttempt, word);
         } else {
-            // First attempt must differ by one letter from the start word
+            // For first attempt, compare with start word
             return isDifferByOneLetter(startWord, word);
         }
     }
@@ -213,27 +173,20 @@ public class Model extends Observable implements IModel {
         return attempts.get(attempts.size() - 1).equals(targetWord);
     }
 
-    /**
-     * Reset the game - clears attempts but keeps the same words
-     * @ensures attempts.isEmpty()
-     * @ensures currentAttempt == 0
-     * @ensures startWord == \old(startWord)
-     * @ensures targetWord == \old(targetWord)
-     */
+    // Resets game with same words
     @Override
     public void resetGame() {
         // Class invariant: dictionary is loaded
         assert !dictionary.isEmpty() : "Dictionary must be loaded";
 
-        // Save current words
+        // Store current words for verification
         String oldStartWord = startWord;
         String oldTargetWord = targetWord;
 
         attempts.clear();
         currentAttempt = 0;
 
-        // Keep the same words - DO NOT regenerate them
-        // This is the key fix for the reported issue
+        // Keep the same words - words are not regenerated on reset
 
         setChanged();
         notifyObservers();
@@ -242,19 +195,13 @@ public class Model extends Observable implements IModel {
         assert attempts.isEmpty() : "Attempts list should be empty after reset";
         // Postcondition: currentAttempt is 0
         assert currentAttempt == 0 : "Current attempt should be 0 after reset";
-        // Postcondition: words remain the same
+        // Verify words remain unchanged
         assert startWord == oldStartWord : "Start word should remain the same after reset";
         assert targetWord == oldTargetWord : "Target word should remain the same after reset";
     }
 
-    /**
-     * Start a new game - may generate new words if in random mode
-     * @ensures attempts.isEmpty()
-     * @ensures currentAttempt == 0
-     * @ensures startWord != null
-     * @ensures targetWord != null
-     * @ensures !startWord.equals(targetWord)
-     */
+    // Starts a new game with fresh words based on random setting
+    // Clears all attempts and ensures start/target words are valid and different
     @Override
     public void newGame() {
         // Class invariant: dictionary is loaded
@@ -344,12 +291,9 @@ public class Model extends Observable implements IModel {
         newGame(); // When changing this setting, start a new game
     }
 
-    /**
-     * @requires dictionary != null && !dictionary.isEmpty()
-     * @requires startWord != null && targetWord != null
-     * @ensures if !result.isEmpty() then result.get(0).equals(startWord)
-     * @ensures if !result.isEmpty() then result.get(result.size()-1).equals(targetWord)
-     */
+    // Calculates optimal solution path from start to target word using breadth-first search
+    // Requires dictionary to be loaded and start/target words to be set
+    // Ensures path starts with start word and ends with target word if a path exists
     @Override
     public List<String> findPath() {
         // Class invariant: dictionary is loaded
