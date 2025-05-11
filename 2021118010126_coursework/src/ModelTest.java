@@ -16,10 +16,27 @@ public class ModelTest {
         model.setShowPath(false);
         model.setRandomWords(false); // Ensure deterministic word selection for testing
     }
-
+    /**
+     * Scenario 1: Test word submission and game state
+     *
+     * This test verifies:
+     * 1. A valid word can be submitted
+     * 2. The attempt is added to the attempts list
+     * 3. The currentAttempt counter is incremented
+     * 4. The hasWon() method correctly identifies when the game is won
+     *
+     * Preconditions:
+     * - model is initialized with fixed start and target words
+     * - no attempts have been made yet
+     *
+     * Postconditions:
+     * - valid words are accepted by submitWord()
+     * - each accepted word is added to the attempts list
+     * - currentAttempt is incremented for each accepted word
+     * - hasWon() returns true when the target word is reached
+     */
     @Test
     public void testWordSubmissionAndGameState() {
-        // Scenario 1: Test word submission and win detection
 
         // Verify initial game state
         assertEquals("sale", model.getStartWord());
@@ -77,10 +94,25 @@ public class ModelTest {
 
         return null; // No valid word found
     }
-
+    /**
+     * Scenario 2: Test game reset and new game functionality
+     *
+     * This test verifies:
+     * 1. resetGame() clears attempts but keeps the same words
+     * 2. newGame() clears attempts and may generate new words
+     *
+     * Preconditions:
+     * - model is initialized with fixed start and target words
+     * - at least one attempt has been made
+     *
+     * Postconditions:
+     * - resetGame() clears the attempts list and resets currentAttempt to 0
+     * - resetGame() keeps the same start and target words
+     * - newGame() clears the attempts list and resets currentAttempt to 0
+     * - newGame() with randomWords=true may generate new start and target words
+     */
     @Test
     public void testGameResetAndNewGame() {
-        // Scenario 2: Test reset and new game functionality
 
         // Setup game with one move
         String validWord = findValidWordFromStart();
@@ -114,10 +146,25 @@ public class ModelTest {
         // Reset to deterministic mode
         model.setRandomWords(false);
     }
-
+    /**
+     * Scenario 3: Test word validation and path finding
+     *
+     * This test verifies:
+     * 1. isValidWord() correctly validates words
+     * 2. findPath() returns a valid path from start word to target word
+     *
+     * Preconditions:
+     * - model is initialized with fixed start and target words
+     *
+     * Postconditions:
+     * - isValidWord() returns true for valid words (in dictionary and differing by one letter)
+     * - isValidWord() returns false for invalid words
+     * - findPath() returns a non-empty list if a path exists
+     * - the path starts with the start word and ends with the target word
+     * - each step in the path differs by exactly one letter from the previous step
+     */
     @Test
     public void testWordValidationAndPathFinding() {
-        // Scenario 3: Test word validation and solution path finding
 
         // Start with clean state
         model.resetGame();
