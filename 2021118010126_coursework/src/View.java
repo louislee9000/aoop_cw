@@ -5,7 +5,7 @@ import java.util.Observable;
 import java.util.Observer;
 
 /**
- * View component for the Weaver game GUI - Modified for unlimited attempts
+ * View component for the Weaver game GUI - Modified for unlimited attempts and keyboard support
  */
 public class View implements Observer {
     private IModel model;
@@ -219,16 +219,43 @@ public class View implements Observer {
         frame.setFocusable(true);
         frame.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                if (controller != null) {
-                    controller.handleKeyPress(evt.getKeyChar());
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (controller == null) return;
+
+                int keyCode = evt.getKeyCode();
+                char keyChar = evt.getKeyChar();
+
+                // Handle special keys
+                if (keyCode == java.awt.event.KeyEvent.VK_ENTER) {
+                    controller.handleSubmit();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_BACK_SPACE) {
+                    controller.handleKeyPress('\b');
+                } else if (Character.isLetter(keyChar)) {
+                    // Handle letter keys
+                    controller.handleKeyPress(keyChar);
                 }
+
+                // Keep focus on the frame
+                frame.requestFocusInWindow();
+            }
+        });
+
+        // Add window focus listener to ensure keyboard input works
+        frame.addWindowFocusListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                frame.requestFocusInWindow();
             }
         });
 
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
+        // Request focus after the window is visible
+        SwingUtilities.invokeLater(() -> {
+            frame.requestFocusInWindow();
+        });
     }
 
     /**
