@@ -5,13 +5,14 @@ import java.util.Observable;
 import java.util.Observer;
 
 /**
- * View component for the Weaver game GUI
+ * View component for the Weaver game GUI - Modified for unlimited attempts
  */
 public class View implements Observer {
     private IModel model;
     private Controller controller;
     private JFrame frame;
     private JPanel boardPanel;
+    private JScrollPane boardScrollPane;
     private JPanel keyboardPanel;
     private JButton resetButton;
     private JButton newGameButton;
@@ -20,7 +21,10 @@ public class View implements Observer {
     private JCheckBox randomWordsCheckBox;
     private JLabel statusLabel;
 
-    private JLabel[][] letterLabels;
+    private JPanel startWordPanel;
+    private JPanel attemptsPanel;
+    private JPanel targetWordPanel;
+    private JPanel currentInputPanel;
     private JButton[] keyButtons;
     private StringBuilder currentInput;
 
@@ -53,23 +57,35 @@ public class View implements Observer {
         frame.setLayout(new BorderLayout(10, 10));
         frame.setMinimumSize(new Dimension(800, 600));
 
-        // Create board panel
-        boardPanel = new JPanel(new GridLayout(6, 4, 5, 5));
+        // Create board panel with vertical box layout
+        boardPanel = new JPanel();
+        boardPanel.setLayout(new BoxLayout(boardPanel, BoxLayout.Y_AXIS));
         boardPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        letterLabels = new JLabel[6][4]; // 6 rows for start word, 4 attempts, and current input
 
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 4; j++) {
-                letterLabels[i][j] = new JLabel(" ");
-                letterLabels[i][j].setOpaque(true);
-                letterLabels[i][j].setBackground(Color.LIGHT_GRAY);
-                letterLabels[i][j].setHorizontalAlignment(SwingConstants.CENTER);
-                letterLabels[i][j].setFont(new Font("Arial", Font.BOLD, 24));
-                letterLabels[i][j].setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                letterLabels[i][j].setPreferredSize(new Dimension(60, 60));
-                boardPanel.add(letterLabels[i][j]);
-            }
-        }
+        // Create start word panel
+        startWordPanel = createWordPanel();
+        boardPanel.add(startWordPanel);
+        boardPanel.add(Box.createVerticalStrut(10));
+
+        // Create attempts panel
+        attemptsPanel = new JPanel();
+        attemptsPanel.setLayout(new BoxLayout(attemptsPanel, BoxLayout.Y_AXIS));
+        boardPanel.add(attemptsPanel);
+
+        // Create current input panel
+        currentInputPanel = createWordPanel();
+        boardPanel.add(currentInputPanel);
+        boardPanel.add(Box.createVerticalStrut(10));
+
+        // Create target word panel
+        targetWordPanel = createWordPanel();
+        boardPanel.add(targetWordPanel);
+
+        // Add scroll pane for the board
+        boardScrollPane = new JScrollPane(boardPanel);
+        boardScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        boardScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        boardScrollPane.getVerticalScrollBar().setUnitIncrement(10);
 
         // Create keyboard panel
         keyboardPanel = new JPanel();
@@ -195,7 +211,7 @@ public class View implements Observer {
         controlsPanel.add(randomWordsCheckBox);
 
         // Add components to frame
-        frame.add(boardPanel, BorderLayout.CENTER);
+        frame.add(boardScrollPane, BorderLayout.CENTER);
         frame.add(keyboardPanel, BorderLayout.SOUTH);
         frame.add(controlsPanel, BorderLayout.EAST);
 
@@ -216,47 +232,80 @@ public class View implements Observer {
     }
 
     /**
+     * Create a word panel with 4 cells
+     * @return the created panel
+     */
+    private JPanel createWordPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 4, 5, 5));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+
+        for (int i = 0; i < 4; i++) {
+            JLabel label = new JLabel(" ");
+            label.setOpaque(true);
+            label.setBackground(Color.LIGHT_GRAY);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setFont(new Font("Arial", Font.BOLD, 24));
+            label.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            label.setPreferredSize(new Dimension(60, 60));
+            panel.add(label);
+        }
+
+        return panel;
+    }
+
+    /**
      * Update the board display
      */
     private void updateBoard() {
-        // Clear the board
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 4; j++) {
-                letterLabels[i][j].setText(" ");
-                letterLabels[i][j].setBackground(Color.LIGHT_GRAY);
-            }
-        }
-
-        // Set the first row to the start word
+        // Update start word
         String startWord = model.getStartWord().toUpperCase();
+        Component[] startComponents = startWordPanel.getComponents();
         for (int j = 0; j < 4; j++) {
-            letterLabels[0][j].setText(String.valueOf(startWord.charAt(j)));
+            ((JLabel) startComponents[j]).setText(String.valueOf(startWord.charAt(j)));
+            ((JLabel) startComponents[j]).setBackground(Color.LIGHT_GRAY);
         }
 
-        // Set the last row to the target word
+        // Update target word
         String targetWord = model.getTargetWord().toUpperCase();
+        Component[] targetComponents = targetWordPanel.getComponents();
         for (int j = 0; j < 4; j++) {
-            letterLabels[5][j].setText(String.valueOf(targetWord.charAt(j)));
+            ((JLabel) targetComponents[j]).setText(String.valueOf(targetWord.charAt(j)));
+            ((JLabel) targetComponents[j]).setBackground(Color.LIGHT_GRAY);
         }
 
-        // Display attempts
+        // Clear attempts panel and recreate it with all attempts
+        attemptsPanel.removeAll();
+
         List<String> attempts = model.getAttempts();
-        for (int i = 0; i < Math.min(attempts.size(), 4); i++) {
+        for (int i = 0; i < attempts.size(); i++) {
             String attempt = attempts.get(i).toUpperCase();
             int[] feedback = model.getFeedback(attempt.toLowerCase());
 
+            JPanel attemptPanel = createWordPanel();
+            Component[] attemptComponents = attemptPanel.getComponents();
+
             for (int j = 0; j < 4; j++) {
-                letterLabels[i + 1][j].setText(String.valueOf(attempt.charAt(j)));
+                ((JLabel) attemptComponents[j]).setText(String.valueOf(attempt.charAt(j)));
 
                 // Set background color based on feedback
                 if (feedback[j] == 1) {
-                    letterLabels[i + 1][j].setBackground(new Color(76, 175, 80)); // Green
+                    ((JLabel) attemptComponents[j]).setBackground(new Color(76, 175, 80)); // Green
                 } else if (feedback[j] == 0) {
-                    letterLabels[i + 1][j].setBackground(new Color(255, 235, 59)); // Yellow
+                    ((JLabel) attemptComponents[j]).setBackground(new Color(255, 235, 59)); // Yellow
                 } else {
-                    letterLabels[i + 1][j].setBackground(new Color(158, 158, 158)); // Grey
+                    ((JLabel) attemptComponents[j]).setBackground(new Color(158, 158, 158)); // Grey
                 }
             }
+
+            attemptsPanel.add(attemptPanel);
+            attemptsPanel.add(Box.createVerticalStrut(5));
+        }
+
+        // Clear current input panel
+        Component[] inputComponents = currentInputPanel.getComponents();
+        for (int j = 0; j < 4; j++) {
+            ((JLabel) inputComponents[j]).setText(" ");
+            ((JLabel) inputComponents[j]).setBackground(Color.LIGHT_GRAY);
         }
 
         // Update status label
@@ -264,6 +313,18 @@ public class View implements Observer {
 
         // Update reset button
         resetButton.setEnabled(model.getCurrentAttempt() > 0);
+
+        // Revalidate and repaint the board panel
+        attemptsPanel.revalidate();
+        attemptsPanel.repaint();
+        boardPanel.revalidate();
+        boardPanel.repaint();
+
+        // Scroll to the bottom to show the current input
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar verticalScrollBar = boardScrollPane.getVerticalScrollBar();
+            verticalScrollBar.setValue(verticalScrollBar.getMaximum());
+        });
 
         // Check if the game is won
         if (model.hasWon()) {
@@ -281,19 +342,18 @@ public class View implements Observer {
      * @param input the current input
      */
     public void updateCurrentInput(String input) {
-        // Input row is based on the number of attempts
-        int inputRow = Math.min(model.getCurrentAttempt() + 1, 4);
+        Component[] inputComponents = currentInputPanel.getComponents();
 
-        // Clear input row
+        // Clear current input
         for (int j = 0; j < 4; j++) {
-            letterLabels[inputRow][j].setText(" ");
-            letterLabels[inputRow][j].setBackground(Color.LIGHT_GRAY);
+            ((JLabel) inputComponents[j]).setText(" ");
+            ((JLabel) inputComponents[j]).setBackground(Color.LIGHT_GRAY);
         }
 
         // Display current input
         for (int j = 0; j < input.length(); j++) {
-            letterLabels[inputRow][j].setText(String.valueOf(input.charAt(j)).toUpperCase());
-            letterLabels[inputRow][j].setBackground(Color.WHITE);
+            ((JLabel) inputComponents[j]).setText(String.valueOf(input.charAt(j)).toUpperCase());
+            ((JLabel) inputComponents[j]).setBackground(Color.WHITE);
         }
     }
 
