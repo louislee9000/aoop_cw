@@ -35,7 +35,7 @@ public class Model extends Observable implements IModel {
         dictionary = new ArrayList<>();
         attempts = new ArrayList<>();
         loadDictionary();
-        resetGame();
+        initializeGame(); // Changed from resetGame() to initializeGame()
     }
 
     /**
@@ -214,6 +214,41 @@ public class Model extends Observable implements IModel {
     }
 
     /**
+     * Reset the game - clears attempts but keeps the same words
+     * @ensures attempts.isEmpty()
+     * @ensures currentAttempt == 0
+     * @ensures startWord == \old(startWord)
+     * @ensures targetWord == \old(targetWord)
+     */
+    @Override
+    public void resetGame() {
+        // Class invariant: dictionary is loaded
+        assert !dictionary.isEmpty() : "Dictionary must be loaded";
+
+        // Save current words
+        String oldStartWord = startWord;
+        String oldTargetWord = targetWord;
+
+        attempts.clear();
+        currentAttempt = 0;
+
+        // Keep the same words - DO NOT regenerate them
+        // This is the key fix for the reported issue
+
+        setChanged();
+        notifyObservers();
+
+        // Postcondition: attempts list is empty
+        assert attempts.isEmpty() : "Attempts list should be empty after reset";
+        // Postcondition: currentAttempt is 0
+        assert currentAttempt == 0 : "Current attempt should be 0 after reset";
+        // Postcondition: words remain the same
+        assert startWord == oldStartWord : "Start word should remain the same after reset";
+        assert targetWord == oldTargetWord : "Target word should remain the same after reset";
+    }
+
+    /**
+     * Start a new game - may generate new words if in random mode
      * @ensures attempts.isEmpty()
      * @ensures currentAttempt == 0
      * @ensures startWord != null
@@ -221,7 +256,7 @@ public class Model extends Observable implements IModel {
      * @ensures !startWord.equals(targetWord)
      */
     @Override
-    public void resetGame() {
+    public void newGame() {
         // Class invariant: dictionary is loaded
         assert !dictionary.isEmpty() : "Dictionary must be loaded";
 
@@ -244,18 +279,34 @@ public class Model extends Observable implements IModel {
         notifyObservers();
 
         // Postcondition: attempts list is empty
-        assert attempts.isEmpty() : "Attempts list should be empty after reset";
+        assert attempts.isEmpty() : "Attempts list should be empty after new game";
         // Postcondition: currentAttempt is 0
-        assert currentAttempt == 0 : "Current attempt should be 0 after reset";
+        assert currentAttempt == 0 : "Current attempt should be 0 after new game";
         // Postcondition: start and target words are set
-        assert startWord != null && targetWord != null : "Start and target words must be set after reset";
+        assert startWord != null && targetWord != null : "Start and target words must be set after new game";
         // Postcondition: start and target words are different
         assert !startWord.equals(targetWord) : "Start and target words must be different";
     }
 
-    @Override
-    public void newGame() {
-        resetGame();
+    /**
+     * Initialize the game - used only in constructor
+     * Sets up initial words based on randomWords setting
+     */
+    private void initializeGame() {
+        attempts.clear();
+        currentAttempt = 0;
+
+        if (randomWords) {
+            startWord = getRandomWord();
+
+            // Make sure the target word is different from the start word
+            do {
+                targetWord = getRandomWord();
+            } while (targetWord.equals(startWord));
+        } else {
+            startWord = DEFAULT_START_WORD;
+            targetWord = DEFAULT_TARGET_WORD;
+        }
     }
 
     @Override
@@ -290,7 +341,7 @@ public class Model extends Observable implements IModel {
     @Override
     public void setRandomWords(boolean randomWords) {
         this.randomWords = randomWords;
-        resetGame();
+        newGame(); // When changing this setting, start a new game
     }
 
     /**
